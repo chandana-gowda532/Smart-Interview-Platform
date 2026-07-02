@@ -10,13 +10,20 @@ function History() {
   }, []);
 
   return (
-    <div style={{ padding: "30px" }}>
+    <div style={{ padding: "20px" }}>
       <h1>Interview History</h1>
 
-      <table border="1" cellPadding="10">
+      <table
+        border="1"
+        cellPadding="10"
+        style={{
+          margin: "auto",
+          borderCollapse: "collapse",
+        }}
+      >
         <thead>
           <tr>
-            <th>Name</th>
+            <th>Username</th>
             <th>Topic</th>
             <th>Score</th>
             <th>Date</th>

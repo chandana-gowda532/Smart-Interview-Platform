@@ -1,38 +1,194 @@
-.App {
-  text-align: center;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+body {
+  background: #0d1117;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.header {
+  background: #161b22;
   color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+.header h1 {
+  color: #58a6ff;
+  margin-bottom: 10px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+.header p {
+  color: #c9d1d9;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: white;
+  font-size: 16px;
+}
+
+textarea {
+  width: 100%;
+  height: 350px;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: white;
+  font-size: 16px;
+  resize: none;
+}
+
+button {
+  background: #238636;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+  font-size: 15px;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #2ea043;
+}
+
+.interview-layout {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.question-panel {
+  width: 40%;
+  background: #161b22;
+  color: white;
+  padding: 25px;
+  border-radius: 10px;
+  min-height: 500px;
+}
+
+.question-panel h2 {
+  color: #58a6ff;
+  margin-bottom: 15px;
+}
+
+.question-panel h3 {
+  margin-top: 20px;
+  line-height: 1.6;
+}
+
+.question-info {
+  margin-top: 30px;
+}
+
+.question-info p {
+  margin-bottom: 12px;
+  color: #c9d1d9;
+}
+
+.answer-panel {
+  width: 60%;
+  background: #161b22;
+  padding: 25px;
+  border-radius: 10px;
+}
+
+.answer-panel h2 {
+  color: #58a6ff;
+  margin-bottom: 15px;
+}
+
+.score {
+  color: #3fb950;
+  text-align: center;
+  font-size: 32px;
+  margin: 20px 0;
+}
+
+.timer {
+  background: #dc2626;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  margin: 15px 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+hr {
+  border: 1px solid #30363d;
+  margin: 15px 0;
+}
+
+@media (max-width: 768px) {
+  .interview-layout {
+    flex-direction: column;
   }
-  to {
-    transform: rotate(360deg);
+
+  .question-panel,
+  .answer-panel {
+    width: 100%;
   }
+
+  textarea {
+    height: 250px;
+  }
+}
+.feedback-box {
+  margin-top: 15px;
+  background: #1f2937;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #22c55e;
+}
+
+.feedback-box h3 {
+  margin-bottom: 10px;
+}
+
+.feedback-box {
+  margin-top: 15px;
+  background: #1f2937;
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 5px solid #22c55e;
+}
+
+.feedback-box h3 {
+  margin-bottom: 10px;
+  color: #22c55e;
+}
+
+.timer {
+  background: #ef4444;
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 15px;
 }

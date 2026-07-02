@@ -4,9 +4,21 @@ from sqlalchemy import text
 from database import engine
 from pydantic import BaseModel
 
+import os
+import json
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+genai.configure(api_key=GEMINI_API_KEY)
+
+model = genai.GenerativeModel("gemini-2.5-flash")
+
 app = FastAPI()
 
-# Enable React ↔ FastAPI connection
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,16 +34,28 @@ class Result(BaseModel):
     score: int
 
 
+class EvaluationRequest(BaseModel):
+    question: str
+    answer: str
+
+
+class QuestionRequest(BaseModel):
+    topic: str
+
+
 @app.get("/")
 def home():
     return {
-        "message": "AI Smart Interview Platform Backend Running"
+        "message": "AI Smart Interview Platform Backend Running",
+        "api_key_loaded": GEMINI_API_KEY is not None
     }
 
 
 @app.get("/questions")
-def get_questions():
+def get_all_questions():
+
     with engine.connect() as conn:
+
         result = conn.execute(
             text("SELECT * FROM questions")
         )
@@ -42,49 +66,146 @@ def get_questions():
             questions.append({
                 "id": row[0],
                 "topic": row[1],
-                "question": row[2]
+                "question": row[2],
+                "keywords": row[3]
             })
 
         return questions
 
 
-@app.get("/questions/{topic}")
-def get_question_by_topic(topic: str):
+@app.get("/questions/{topic}/{count}")
+def get_questions(topic: str, count: int):
+
     with engine.connect() as conn:
+
         result = conn.execute(
             text("""
                 SELECT *
                 FROM questions
                 WHERE LOWER(topic)=LOWER(:topic)
                 ORDER BY RANDOM()
-                LIMIT 1
+                LIMIT :count
             """),
-            {"topic": topic}
+            {
+                "topic": topic,
+                "count": count
+            }
         )
 
-        row = result.fetchone()
+        questions = []
 
-        if row:
-            return {
+        for row in result:
+            questions.append({
                 "id": row[0],
                 "topic": row[1],
-                "question": row[2]
-            }
+                "question": row[2],
+                "keywords": row[3]
+            })
+
+        return questions
+
+
+@app.post("/generate-question")
+def generate_question(data: QuestionRequest):
+
+    prompt = f"""
+    Generate one technical interview question on
+    {data.topic}.
+
+    Return only the question text.
+    """
+
+    response = model.generate_content(prompt)
+
+    return {
+        "question": response.text.strip()
+    }
+
+
+@app.post("/evaluate-answer")
+def evaluate_answer(data: EvaluationRequest):
+
+    prompt = f"""
+    You are a technical interviewer.
+
+    Question:
+    {data.question}
+
+    Candidate Answer:
+    {data.answer}
+
+    Evaluate the answer.
+
+    Return ONLY JSON:
+
+    {{
+      "score": 8,
+      "feedback": "Good answer. Mention more details."
+    }}
+
+    Score must be between 0 and 10.
+    """
+
+    response = model.generate_content(prompt)
+
+    try:
+
+        text_response = response.text.strip()
+
+        if text_response.startswith("```json"):
+            text_response = (
+                text_response
+                .replace("```json", "")
+                .replace("```", "")
+                .strip()
+            )
+
+        result = json.loads(text_response)
+
+        return result
+
+    except Exception:
 
         return {
-            "message": "No questions found"
+            "score": 0,
+            "feedback": response.text
         }
 
 
 @app.post("/save-result")
 def save_result(result: Result):
+
     with engine.connect() as conn:
+
+        user_exists = conn.execute(
+            text("""
+                SELECT id
+                FROM users
+                WHERE username=:username
+            """),
+            {
+                "username": result.username
+            }
+        ).fetchone()
+
+        if not user_exists:
+
+            conn.execute(
+                text("""
+                    INSERT INTO users(username)
+                    VALUES(:username)
+                """),
+                {
+                    "username": result.username
+                }
+            )
+
         conn.execute(
             text("""
                 INSERT INTO interview_results
-                (username, topic, score)
+                (username,topic,score)
                 VALUES
-                (:username, :topic, :score)
+                (:username,:topic,:score)
             """),
             {
                 "username": result.username,
@@ -102,7 +223,9 @@ def save_result(result: Result):
 
 @app.get("/results")
 def get_results():
+
     with engine.connect() as conn:
+
         result = conn.execute(
             text("""
                 SELECT *
@@ -114,6 +237,7 @@ def get_results():
         results = []
 
         for row in result:
+
             results.append({
                 "id": row[0],
                 "username": row[1],
