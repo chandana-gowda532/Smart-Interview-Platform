@@ -6,16 +6,16 @@ from pydantic import BaseModel
 
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_API_KEY)
+print("API KEY LOADED:", GEMINI_API_KEY is not None)
 
-model = genai.GenerativeModel("gemini-2.5-flash")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 app = FastAPI()
 
@@ -39,15 +39,10 @@ class EvaluationRequest(BaseModel):
     answer: str
 
 
-class QuestionRequest(BaseModel):
-    topic: str
-
-
 @app.get("/")
 def home():
     return {
-        "message": "AI Smart Interview Platform Backend Running",
-        "api_key_loaded": GEMINI_API_KEY is not None
+        "message": "AI Smart Interview Platform Backend Running"
     }
 
 
@@ -105,70 +100,66 @@ def get_questions(topic: str, count: int):
         return questions
 
 
-@app.post("/generate-question")
-def generate_question(data: QuestionRequest):
-
-    prompt = f"""
-    Generate one technical interview question on
-    {data.topic}.
-
-    Return only the question text.
-    """
-
-    response = model.generate_content(prompt)
-
-    return {
-        "question": response.text.strip()
-    }
-
-
 @app.post("/evaluate-answer")
 def evaluate_answer(data: EvaluationRequest):
 
-    prompt = f"""
-    You are a technical interviewer.
-
-    Question:
-    {data.question}
-
-    Candidate Answer:
-    {data.answer}
-
-    Evaluate the answer.
-
-    Return ONLY JSON:
-
-    {{
-      "score": 8,
-      "feedback": "Good answer. Mention more details."
-    }}
-
-    Score must be between 0 and 10.
-    """
-
-    response = model.generate_content(prompt)
-
     try:
+
+        prompt = f"""
+You are a technical interviewer.
+
+Question:
+{data.question}
+
+Candidate Answer:
+{data.answer}
+
+Evaluate the answer.
+
+Return ONLY JSON in this format:
+
+{{
+  "score": 8,
+  "feedback": "Good answer. Mention more technical details."
+}}
+
+Score must be between 0 and 10.
+"""
+
+        print("Sending request to Gemini...")
+
+        response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=prompt
+)
 
         text_response = response.text.strip()
 
-        if text_response.startswith("```json"):
-            text_response = (
-                text_response
-                .replace("```json", "")
-                .replace("```", "")
-                .strip()
-            )
+        print("Gemini Response:", text_response)
 
-        result = json.loads(text_response)
+        text_response = (
+            text_response
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
 
-        return result
+        try:
+            return json.loads(text_response)
 
-    except Exception:
+        except Exception:
+            return {
+                "score": 5,
+                "feedback": text_response
+            }
+
+    except Exception as e:
+
+        print("Gemini Error:", str(e))
 
         return {
             "score": 0,
-            "feedback": response.text
+            "feedback": f"Gemini Error: {str(e)}"
         }
 
 
@@ -203,9 +194,9 @@ def save_result(result: Result):
         conn.execute(
             text("""
                 INSERT INTO interview_results
-                (username,topic,score)
+                (username, topic, score)
                 VALUES
-                (:username,:topic,:score)
+                (:username, :topic, :score)
             """),
             {
                 "username": result.username,
@@ -237,7 +228,6 @@ def get_results():
         results = []
 
         for row in result:
-
             results.append({
                 "id": row[0],
                 "username": row[1],
